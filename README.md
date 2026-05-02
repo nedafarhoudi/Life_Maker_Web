@@ -1,37 +1,25 @@
-# Life Rhythm
+# Life Maker
 
-Life Rhythm is a Persian-first lifestyle management application built with Expo, React Native, and React Native Web.  
-It is designed for users who manage multiple life roles at the same time and need a structured way to track recurring responsibilities, urgency, balance, and daily consistency.
+Life Maker is a healthcare adherence MVP built with Expo, React Native, and React Native Web.
+It helps clinic staff create treatment plans, helps patients complete daily plan items, and helps clinics identify who needs follow-up.
 
-The current version focuses on a single-codebase experience for web and mobile, with RTL UI, local persistence, recurring task scoring, and a role-based dashboard.
-
-## Product Concept
-
-This project is not a generic to-do list.
-
-It is a rhythm-based life management system where:
-
-- a user defines major life roles
-- each role contains dimensions
-- each dimension contains tasks
-- recurring tasks are evaluated by cadence and urgency
-- daily score and consistency reflect how well life responsibilities are being maintained
-
-The initial product direction is based on a multi-role lifestyle scenario including motherhood, work, home management, relationships, personal growth, and family care.
+The current version is a single-codebase demo for web and mobile with local persistence and seeded demo users.
 
 ## Current Features
 
-- Persian-first RTL interface
-- Shared codebase for web and mobile
-- Onboarding flow for selecting active roles
-- Daily dashboard with score, progress, and pending task billboard
-- Today view with urgency-based task ordering
-- Role and dimension overview
-- Quick-add actions for roles, dimensions, and tasks
-- Recurrence-aware task status calculation
-- Score preview and daily score tracking
+- Doctor/staff login
+- Patient login by phone
+- Admin login
+- Doctor dashboard with active patients, check-ins today, and follow-up list
+- Patients list
+- Add patient form
+- Patient detail page with adherence summary
+- Create and edit one active plan per patient
+- Patient today screen with `done`, `not_done`, and `later`
+- Patient full plan and recent history
+- Admin dashboard, clinics, users, and patients pages
 - Local persistence with `AsyncStorage`
-- Seeded Persian sample data
+- Seeded demo data
 
 ## Tech Stack
 
@@ -50,19 +38,19 @@ The initial product direction is based on a multi-role lifestyle scenario includ
   Main application shell, local navigation, and screen composition.
 
 - `src/types`  
-  Domain models for roles, dimensions, tasks, completions, and app state.
+  Domain models for clinics, users, patients, plans, plan items, and daily checks.
 
 - `src/data`  
-  Seed data used to bootstrap the initial experience.
+  Demo seed data for all three roles.
 
 - `src/hooks`  
-  Persistent application state and state mutations.
+  Persistent application state, auth, and page actions.
 
 - `src/services`  
   Storage layer.
 
 - `src/utils`  
-  Date helpers, recurrence logic, and scoring logic.
+  Date helpers and adherence/follow-up logic.
 
 - `src/components`  
   Reusable UI primitives.
@@ -107,24 +95,28 @@ npm start
 npm run typecheck
 ```
 
+## Demo Credentials
+
+- Admin: `admin@lifemaker.local` / `admin123`
+- Doctor/staff: `doctor@lifemaker.local` / `doctor123`
+- Patient: `09120000001`
+
 ## Implementation Notes
 
 - The app currently uses local-only persistence.
-- The recurrence model supports daily, interval, weekly, monthly, and manual task patterns at the domain level.
-- The current UI is intentionally product-oriented, but still an early version of the broader roadmap.
+- The current UI is MVP-focused and optimized for local demo use.
 - The web and mobile experience share the same core logic and state model.
+- Follow-up is triggered when there is no DailyCheck in the last 2 days, 7-day adherence is below 40%, or the patient has an active plan with no first check-in.
 
 ## Roadmap
 
-- richer task creation and editing flows
-- deeper analytics and reporting
-- better certificate and streak visualization
-- cloud sync support
-- authenticated multi-user support
-- production packaging for Android release
+- stronger form validation
+- real backend and authentication
+- production mobile packaging
+- reminder delivery integration
 
 ## Repository
 
 GitHub repository:
 
-`https://github.com/nedafarhoudi/Life-rhythm`
+`https://github.com/nedafarhoudi/Life_Maker_Web`

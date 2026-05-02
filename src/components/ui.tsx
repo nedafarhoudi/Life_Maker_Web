@@ -2,7 +2,8 @@ import { PropsWithChildren } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { theme } from '../theme';
-import { UrgencyTone } from '../types/domain';
+
+type Tone = 'success' | 'warning' | 'danger' | 'muted';
 
 export function SectionCard({ children }: PropsWithChildren) {
   return <View style={styles.card}>{children}</View>;
@@ -17,7 +18,7 @@ export function SectionTitle({ title, subtitle }: { title: string; subtitle?: st
   );
 }
 
-export function Pill({ label, tone = 'success' }: { label: string; tone?: UrgencyTone }) {
+export function Pill({ label, tone = 'success' }: { label: string; tone?: Tone }) {
   const backgroundColor =
     tone === 'success'
       ? 'rgba(47, 143, 105, 0.14)'

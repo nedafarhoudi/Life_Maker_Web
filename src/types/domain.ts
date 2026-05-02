@@ -1,92 +1,170 @@
-export type ScreenKey = 'dashboard' | 'today' | 'roles' | 'insights';
+export type Role = 'admin' | 'doctor_staff' | 'patient';
+export type AppLanguage = 'fa' | 'en';
 
-export type RecurrenceType = 'daily' | 'interval' | 'weekly' | 'monthly' | 'manual';
+export type AppRoute =
+  | 'landing'
+  | 'doctor/dashboard'
+  | 'doctor/patients'
+  | 'doctor/patients/new'
+  | 'doctor/patients/detail'
+  | 'doctor/patients/plan'
+  | 'patient/today'
+  | 'patient/plan'
+  | 'patient/history'
+  | 'admin/dashboard'
+  | 'admin/clinics'
+  | 'admin/users'
+  | 'admin/patients';
 
-export type UrgencyTone = 'success' | 'warning' | 'danger' | 'muted';
+export type PlanItemStatus = 'done' | 'not_done' | 'later';
 
-export interface Role {
+export type PlanItemCadence = 'daily' | 'weekly' | 'custom';
+
+export interface Clinic {
   id: string;
-  title: string;
-  description: string;
-  color: string;
+  name: string;
+  city: string;
+  staffCount: number;
+  createdAt: string;
 }
 
-export interface Dimension {
+export interface User {
   id: string;
-  roleId: string;
-  title: string;
-  description: string;
+  clinicId: string | null;
+  role: Exclude<Role, 'patient'>;
+  name: string;
+  email: string;
+  password: string;
+  createdAt: string;
 }
 
-export interface Task {
+export interface Patient {
   id: string;
-  roleId: string;
-  dimensionId: string;
+  clinicId: string;
+  doctorStaffUserId: string;
+  name: string;
+  phone: string;
+  age: number;
+  condition: string;
+  notes: string;
+  joinedAt: string;
+}
+
+export interface Plan {
+  id: string;
+  patientId: string;
   title: string;
-  description?: string;
-  estimatedMinutes: number;
-  recurrenceType: RecurrenceType;
-  intervalDays?: number;
-  monthlyDay?: number;
-  dueTime?: string;
-  dueDate?: string;
   startDate: string;
-  priority: 1 | 2 | 3;
-  baseScore: number;
-  qualityWeight: number;
-  autoSchedule: boolean;
+  endDate: string | null;
+  isActive: boolean;
+  createdByUserId: string;
+  createdAt: string;
 }
 
-export interface Completion {
+export interface PlanItem {
   id: string;
-  taskId: string;
-  completedAt: string;
-  toneAtCompletion: UrgencyTone;
-  pointsAwarded: number;
-  actualMinutes: number;
-  quality: number;
+  planId: string;
+  label: string;
+  instructions: string;
+  timeOfDay: string;
+  cadence: PlanItemCadence;
 }
 
-export interface DailyScore {
-  date: string;
-  score: number;
-}
-
-export interface Certificate {
+export interface DailyCheck {
   id: string;
-  taskId: string;
+  patientId: string;
+  planItemId: string;
+  status: PlanItemStatus;
+  note: string;
+  checkDate: string;
+  createdAt: string;
+}
+
+export interface ReminderLog {
+  id: string;
+  patientId: string;
+  message: string;
+  channel: 'mock_sms' | 'manual_call';
+  createdAt: string;
+}
+
+export interface AuthSession {
+  role: Role;
+  userId: string;
+  patientId?: string;
+}
+
+export interface NewPatientDraft {
+  name: string;
+  phone: string;
+  age: string;
+  condition: string;
+  notes: string;
+}
+
+export interface PlanItemDraft {
+  label: string;
+  instructions: string;
+  timeOfDay: string;
+}
+
+export interface PlanDraft {
   title: string;
-  awardedAt: string;
+  startDate: string;
+  endDate: string;
+  items: PlanItemDraft[];
 }
 
-export interface QuoteCard {
-  id: string;
-  kind: 'quote' | 'poem';
-  text: string;
-  author: string;
+export interface MedicationInstructionDraft {
+  medicationName: string;
+  dose: string;
+  frequency: string;
+  times: string;
+  durationDays: string;
+  note: string;
 }
 
-export interface Settings {
-  onboarded: boolean;
-  selectedRoleIds: string[];
+export interface PrescriptionDraft {
+  sourceNote: string;
+  extractionStatus: 'manual_review' | 'approved';
+  photoUri: string | null;
+  photoUpdatedAt: string | null;
+  medications: MedicationInstructionDraft[];
 }
 
 export interface AppState {
-  roles: Role[];
-  dimensions: Dimension[];
-  tasks: Task[];
-  completions: Completion[];
-  dailyScores: DailyScore[];
-  certificates: Certificate[];
-  quotes: QuoteCard[];
-  settings: Settings;
+  schemaVersion: number;
+  language: AppLanguage;
+  clinics: Clinic[];
+  users: User[];
+  patients: Patient[];
+  plans: Plan[];
+  planItems: PlanItem[];
+  dailyChecks: DailyCheck[];
+  reminderLogs: ReminderLog[];
+  currentSession: AuthSession | null;
+  currentRoute: AppRoute;
+  selectedPatientId: string | null;
+  drafts: {
+    newPatient: NewPatientDraft;
+    planByPatientId: Record<string, PlanDraft>;
+    prescriptionByPatientId: Record<string, PrescriptionDraft>;
+  };
 }
 
-export interface TaskStatus {
-  task: Task;
-  dueAt: Date;
-  remainingMs: number;
-  isCompletedToday: boolean;
-  tone: UrgencyTone;
-  pointsPreview: number;
+export interface AdherenceSummary {
+  patientId: string;
+  rate7d: number;
+  checksToday: number;
+  checks7d: number;
+  hasCheckedInEver: boolean;
+  hasCheckedInLast2Days: boolean;
+  needsFollowUp: boolean;
+  reason: string;
+}
+
+export interface TodayPlanRow {
+  planItem: PlanItem;
+  latestStatus: PlanItemStatus | null;
+  latestCheckId: string | null;
 }

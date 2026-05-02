@@ -1,144 +1,96 @@
-import { AppState, Completion, Task, TaskStatus, UrgencyTone } from '../types/domain';
-import { addDays, addMonths, diffInDays, setTime, startOfDay, toDateKey } from './date';
+import { AdherenceSummary, AppState, DailyCheck, Patient, Plan, PlanItem, PlanItemStatus, TodayPlanRow } from '../types/domain';
+import { addDays, toDateKey } from './date';
 
-function getLatestCompletion(taskId: string, completions: Completion[]) {
-  return completions
-    .filter((entry) => entry.taskId === taskId)
-    .sort((a, b) => b.completedAt.localeCompare(a.completedAt))[0];
+function isWithinWindow(dateKey: string, startKey: string) {
+  return dateKey >= startKey;
 }
 
-function isCompletedOnDate(taskId: string, completions: Completion[], date: Date) {
-  const key = toDateKey(date);
-  return completions.some((entry) => entry.taskId === taskId && entry.completedAt.slice(0, 10) === key);
+function getPatientChecks(patientId: string, dailyChecks: DailyCheck[]) {
+  return dailyChecks.filter((entry) => entry.patientId === patientId);
 }
 
-function getNextScheduledDue(task: Task, completions: Completion[], now: Date) {
-  const start = new Date(task.startDate);
-  const baseline = setTime(startOfDay(start), task.dueTime);
-
-  if (task.recurrenceType === 'manual' && task.dueDate) {
-    return new Date(task.dueDate);
-  }
-
-  if (task.recurrenceType === 'daily') {
-    const todayDue = setTime(startOfDay(now), task.dueTime);
-    if (now <= todayDue || !isCompletedOnDate(task.id, completions, now)) {
-      return todayDue;
-    }
-
-    return addDays(todayDue, 1);
-  }
-
-  if (task.recurrenceType === 'interval' || task.recurrenceType === 'weekly') {
-    const interval = task.recurrenceType === 'weekly' ? task.intervalDays ?? 7 : task.intervalDays ?? 3;
-    const daysSinceStart = Math.max(0, diffInDays(now, baseline));
-    const elapsedCycles = Math.floor(daysSinceStart / interval);
-    let due = addDays(baseline, elapsedCycles * interval);
-
-    if (getLatestCompletion(task.id, completions)?.completedAt && isCompletedOnDate(task.id, completions, due)) {
-      due = addDays(due, interval);
-    }
-
-    while (isCompletedOnDate(task.id, completions, due)) {
-      due = addDays(due, interval);
-    }
-
-    return due;
-  }
-
-  if (task.recurrenceType === 'monthly') {
-    let due = new Date(baseline);
-    due.setDate(task.monthlyDay ?? due.getDate());
-
-    while (due < now && isCompletedOnDate(task.id, completions, due)) {
-      due = addMonths(due, 1);
-    }
-
-    return due;
-  }
-
-  return baseline;
+export function getActivePlan(patientId: string, plans: Plan[]) {
+  return plans.find((plan) => plan.patientId === patientId && plan.isActive) ?? null;
 }
 
-function getTone(remainingMs: number, estimatedMinutes: number): UrgencyTone {
-  if (remainingMs < 0) {
-    return 'danger';
-  }
-
-  const warningThreshold = Math.max(estimatedMinutes * 60000, 2 * 60 * 60 * 1000);
-  if (remainingMs <= warningThreshold) {
-    return 'warning';
-  }
-
-  return 'success';
+export function getPlanItems(planId: string | null, planItems: PlanItem[]) {
+  if (!planId) return [];
+  return planItems.filter((item) => item.planId === planId);
 }
 
-function calculatePoints(task: Task, tone: UrgencyTone, quality = 1) {
-  const toneMultiplier = tone === 'success' ? 1.15 : tone === 'warning' ? 1 : tone === 'danger' ? 0.55 : 0.85;
-  const qualityMultiplier = 0.75 + quality * task.qualityWeight;
-  return Math.round(task.baseScore * toneMultiplier * qualityMultiplier);
-}
+export function getTodayPlanRows(state: AppState, patientId: string, now = new Date()): TodayPlanRow[] {
+  const activePlan = getActivePlan(patientId, state.plans);
+  const items = getPlanItems(activePlan?.id ?? null, state.planItems);
+  const todayKey = toDateKey(now);
 
-export function buildTaskStatuses(state: AppState, now = new Date()): TaskStatus[] {
-  return state.tasks.map((task) => {
-    const dueAt = getNextScheduledDue(task, state.completions, now);
-    const remainingMs = dueAt.getTime() - now.getTime();
-    const isCompletedToday = isCompletedOnDate(task.id, state.completions, now);
-    const tone = isCompletedToday ? 'muted' : getTone(remainingMs, task.estimatedMinutes);
+  return items.map((planItem) => {
+    const todayChecks = state.dailyChecks
+      .filter((entry) => entry.patientId === patientId && entry.planItemId === planItem.id && entry.checkDate === todayKey)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    const latest = todayChecks[0];
 
     return {
-      task,
-      dueAt,
-      remainingMs,
-      isCompletedToday,
-      tone,
-      pointsPreview: calculatePoints(task, tone),
+      planItem,
+      latestStatus: latest?.status ?? null,
+      latestCheckId: latest?.id ?? null,
     };
   });
 }
 
-export function computeDailyScore(state: AppState, dateKey: string) {
-  return state.completions
-    .filter((entry) => entry.completedAt.slice(0, 10) === dateKey)
-    .reduce((sum, entry) => sum + entry.pointsAwarded, 0);
-}
+export function computeAdherenceSummary(state: AppState, patient: Patient, now = new Date()): AdherenceSummary {
+  const activePlan = getActivePlan(patient.id, state.plans);
+  const items = getPlanItems(activePlan?.id ?? null, state.planItems);
+  const checks = getPatientChecks(patient.id, state.dailyChecks);
+  const todayKey = toDateKey(now);
+  const last2DaysKey = toDateKey(addDays(now, -1));
+  const start7DaysKey = toDateKey(addDays(now, -6));
+  const checks7d = checks.filter((entry) => isWithinWindow(entry.checkDate, start7DaysKey));
+  const checksToday = checks.filter((entry) => entry.checkDate === todayKey).length;
+  const hasCheckedInEver = checks.length > 0;
+  const hasCheckedInLast2Days = checks.some((entry) => entry.checkDate >= last2DaysKey);
+  const expectedChecks7d = items.length * 7;
+  const positiveChecks7d = checks7d.filter((entry) => entry.status === 'done').length;
+  const rate7d = expectedChecks7d > 0 ? Math.round((positiveChecks7d / expectedChecks7d) * 100) : 0;
 
-export function buildCompletion(task: Task, tone: UrgencyTone, actualMinutes: number, quality: number): Completion {
-  const now = new Date();
+  let needsFollowUp = false;
+  let reason = 'Stable';
+
+  if (activePlan && !hasCheckedInEver) {
+    needsFollowUp = true;
+    reason = 'Active plan with no first check-in yet';
+  } else if (!hasCheckedInLast2Days) {
+    needsFollowUp = true;
+    reason = 'No DailyCheck in the last 2 days';
+  } else if (activePlan && rate7d < 40) {
+    needsFollowUp = true;
+    reason = '7-day adherence below 40%';
+  }
+
   return {
-    id: `completion-${task.id}-${now.getTime()}`,
-    taskId: task.id,
-    completedAt: now.toISOString(),
-    toneAtCompletion: tone,
-    pointsAwarded: calculatePoints(task, tone, quality),
-    actualMinutes,
-    quality,
+    patientId: patient.id,
+    rate7d,
+    checksToday,
+    checks7d: checks7d.length,
+    hasCheckedInEver,
+    hasCheckedInLast2Days,
+    needsFollowUp,
+    reason,
   };
 }
 
-export function computeStreak(taskId: string, completions: Completion[]) {
-  const history = completions
-    .filter((entry) => entry.taskId === taskId)
-    .sort((a, b) => b.completedAt.localeCompare(a.completedAt));
+export function buildPatientSummaryRows(state: AppState, patientIds?: string[]) {
+  const patients = patientIds ? state.patients.filter((patient) => patientIds.includes(patient.id)) : state.patients;
 
-  if (history.length === 0) {
-    return 0;
-  }
+  return patients.map((patient) => ({
+    patient,
+    activePlan: getActivePlan(patient.id, state.plans),
+    summary: computeAdherenceSummary(state, patient),
+  }));
+}
 
-  let streak = 1;
-
-  for (let index = 1; index < history.length; index += 1) {
-    const previous = startOfDay(new Date(history[index - 1].completedAt));
-    const current = startOfDay(new Date(history[index].completedAt));
-    const distance = diffInDays(previous, current);
-
-    if (distance <= 7) {
-      streak += 1;
-      continue;
-    }
-
-    break;
-  }
-
-  return streak;
+export function getStatusTone(status: PlanItemStatus | null) {
+  if (status === 'done') return 'success';
+  if (status === 'later') return 'warning';
+  if (status === 'not_done') return 'danger';
+  return 'muted';
 }

@@ -1,12 +1,11 @@
 {
   "expo": {
-    "name": "life-rhythm",
-    "slug": "life-rhythm",
+    "name": "Life Maker",
+    "slug": "life-maker-web",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
