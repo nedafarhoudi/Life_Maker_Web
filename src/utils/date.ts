@@ -1,22 +1,28 @@
 const dayMs = 24 * 60 * 60 * 1000;
 
-export function formatDateLabel(date: Date) {
-  return new Intl.DateTimeFormat('fa-IR', {
+type DateLocale = 'fa' | 'en';
+
+function localeName(locale: DateLocale) {
+  return locale === 'fa' ? 'fa-IR-u-ca-persian' : 'en-US';
+}
+
+export function formatDateLabel(date: Date, locale: DateLocale = 'fa') {
+  return new Intl.DateTimeFormat(localeName(locale), {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
   }).format(date);
 }
 
-export function formatTime(date: Date) {
-  return new Intl.DateTimeFormat('fa-IR', {
+export function formatTime(date: Date, locale: DateLocale = 'fa') {
+  return new Intl.DateTimeFormat(localeName(locale), {
     hour: '2-digit',
     minute: '2-digit',
   }).format(date);
 }
 
-export function formatCompactDate(date: Date) {
-  return new Intl.DateTimeFormat('fa-IR', {
+export function formatCompactDate(date: Date, locale: DateLocale = 'fa') {
+  return new Intl.DateTimeFormat(localeName(locale), {
     month: 'short',
     day: 'numeric',
   }).format(date);

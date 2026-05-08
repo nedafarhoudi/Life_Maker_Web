@@ -95,11 +95,68 @@ npm start
 npm run typecheck
 ```
 
+## Build For Web
+
+```bash
+npm run build:web
+```
+
+This creates a static production-ready web build in:
+
+`dist/`
+
+You can upload the contents of `dist` to any static host.
+
+## Deploy Options
+
+The current app is best deployed as a static web app.
+
+Recommended hosts:
+
+- Netlify
+- Vercel
+- Cloudflare Pages
+- GitHub Pages
+- any cPanel/static host that can serve an `index.html`
+
+Included config files:
+
+- `netlify.toml`
+- `vercel.json`
+
+### Netlify
+
+- Connect the GitHub repo
+- Build command: `npm run build:web`
+- Publish directory: `dist`
+
+### Vercel
+
+- Import the GitHub repo
+- The project already includes `vercel.json`
+
+### Manual static hosting
+
+1. Run `npm run build:web`
+2. Upload everything inside `dist/`
+3. Make sure the host serves `index.html` for app routes
+
+## Demo Notice
+
+This release should be presented as a prototype / demo build.
+
+- Do not use real patient data
+- Do not present it as a production medical product
+- The prescription photo flow is still review-first and not a validated clinical OCR workflow
+- Local persistence is browser/device-local only
+
 ## Demo Credentials
 
 - Admin: `admin@lifemaker.local` / `admin123`
 - Doctor/staff: `doctor@lifemaker.local` / `doctor123`
 - Patient: `09120000001`
+- Planner member: `leila@lifemaker.local` / `plan123`
+- Observer: `shima@lifemaker.local` / `observe123`
 
 ## Implementation Notes
 

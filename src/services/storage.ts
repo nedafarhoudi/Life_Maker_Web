@@ -41,6 +41,10 @@ export async function loadAppState() {
           ...seedState.drafts.prescriptionByPatientId,
           ...parsed.drafts?.prescriptionByPatientId,
         },
+        routinePlanByOwnerId: {
+          ...seedState.drafts.routinePlanByOwnerId,
+          ...parsed.drafts?.routinePlanByOwnerId,
+        },
       },
     };
   } catch {
